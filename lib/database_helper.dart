@@ -60,7 +60,7 @@ class DatabaseHelper {
       for (int i = 1; i <= 13; i++) {
         String cardName;
         String imageUrl =
-            'https://example.com/cards/${i}_of_${suit.toLowerCase()}.png';
+            'https://deckofcardsapi.com/static/img/${suit.toLowerCase()[0]}${i.toString().padLeft(2, '0')}.png';
 
         switch (i) {
           case 1:
