@@ -2,12 +2,10 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper._internal();
-  static Database? _database;
+  static final DatabaseHelper instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => instance;
 
-  factory DatabaseHelper() {
-    return _instance;
-  }
+  static Database? _database;
 
   DatabaseHelper._internal();
 
@@ -18,76 +16,105 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'card_database.db');
+    String path = join(await getDatabasesPath(), 'cards.db');
     return await openDatabase(
       path,
       version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE Folders(
+      onCreate: (db, version) {
+        return db.execute('''
+          CREATE TABLE folders(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             folder_name TEXT
           )
-        ''');
-        await db.execute('''
-          CREATE TABLE Cards(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            folder_id INTEGER,
-            name TEXT,
-            image_url TEXT,
-            FOREIGN KEY (folder_id) REFERENCES Folders (id) ON DELETE CASCADE
-          )
-        ''');
+        ''').then((_) {
+          return db.execute('''
+            CREATE TABLE cards(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              folder_id INTEGER,
+              name TEXT,
+              image_url TEXT,
+              FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE
+            )
+          ''');
+        });
       },
     );
   }
 
-  // Insert a new folder (addFolder method)
-  Future<int> addFolder(String folderName) async {
+  Future<void> addFolder(String name) async {
     final db = await database;
-    return await db.insert('Folders', {'folder_name': folderName});
-  }
-
-  // Update an existing folder
-  Future<int> updateFolder(int id, String folderName) async {
-    final db = await database;
-    return await db.update(
-      'Folders',
-      {'folder_name': folderName},
-      where: 'id = ?',
-      whereArgs: [id],
+    await db.insert(
+      'folders',
+      {'folder_name': name},
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  // Delete a folder
-  Future<int> deleteFolder(int id) async {
-    final db = await database;
-    return await db.delete(
-      'Folders',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  // Fetch all folders
   Future<List<Map<String, dynamic>>> getFolders() async {
     final db = await database;
-    return await db.query('Folders');
+    return await db.query('folders');
   }
 
-  // Insert a new card (addCard method)
-  Future<int> addCard(int folderId, String name, String imageUrl) async {
+  Future<void> updateFolder(int id, String name) async {
     final db = await database;
-    return await db.insert('Cards', {
-      'folder_id': folderId,
-      'name': name,
-      'image_url': imageUrl,
-    });
+    await db.update(
+      'folders',
+      {'folder_name': name},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
-  // Fetch all cards in a folder
-  Future<List<Map<String, dynamic>>> getCards(int folderId) async {
+  Future<void> deleteFolder(int id) async {
     final db = await database;
-    return await db.query('Cards', where: 'folder_id = ?', whereArgs: [folderId]);
+    await db.delete(
+      'folders',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> addCard(int folderId, String name, String imageUrl) async {
+    final db = await database;
+    await db.insert(
+      'cards',
+      {'folder_id': folderId, 'name': name, 'image_url': imageUrl},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> fetchCards(int folderId) async {
+    final db = await database;
+    return await db
+        .query('cards', where: 'folder_id = ?', whereArgs: [folderId]);
+  }
+
+  Future<bool> cardExists(int folderId, String name) async {
+    final db = await database;
+    final result = await db.query(
+      'cards',
+      where: 'folder_id = ? AND name = ?',
+      whereArgs: [folderId, name],
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<void> updateCard(int id, String name, String imageUrl) async {
+    final db = await database;
+    await db.update(
+      'cards', // Your table name
+      {'name': name, 'image_url': imageUrl},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> deleteCard(int id) async {
+    final db = await database;
+    await db.delete(
+      'cards', // Your table name
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }
