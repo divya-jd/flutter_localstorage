@@ -3,95 +3,77 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
-  factory DatabaseHelper() => _instance;
+  static Database? _database;
+
+  factory DatabaseHelper() {
+    return _instance;
+  }
 
   DatabaseHelper._internal();
 
-  static Database? _database;
-
   Future<Database> get database async {
-    _database ??= await _initDb();
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
     return _database!;
   }
 
-  Future<Database> _initDb() async {
-    String path = join(await getDatabasesPath(), 'cards.db');
+  Future<Database> _initDatabase() async {
+    String path = join(await getDatabasesPath(), 'card_database.db');
     return await openDatabase(
       path,
       version: 1,
-      onCreate: _onCreate,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE Folders(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_name TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE Cards(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_id INTEGER,
+            name TEXT,
+            image_url TEXT,
+            FOREIGN KEY (folder_id) REFERENCES Folders (id) ON DELETE CASCADE
+          )
+        ''');
+      },
     );
   }
 
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE Folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        folder_name TEXT NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE Cards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        suit TEXT NOT NULL,
-        image_url TEXT NOT NULL,
-        folder_id INTEGER,
-        FOREIGN KEY (folder_id) REFERENCES Folders (id)
-      )
-    ''');
-
-    await _insertInitialData(db);
+  // Insert a new folder
+  Future<int> insertFolder(String folderName) async {
+    final db = await database;
+    return await db.insert('Folders', {'folder_name': folderName});
   }
 
-  Future<void> _insertInitialData(Database db) async {
-    // Insert Folders
-    List<String> folderNames = ['Hearts', 'Spades', 'Diamonds', 'Clubs'];
-    for (String folderName in folderNames) {
-      await db.insert('Folders', {'folder_name': folderName});
-    }
-
-    // Insert Cards
-    List<Map<String, dynamic>> cards = [];
-    List<String> suits = ['Hearts', 'Spades', 'Diamonds', 'Clubs'];
-    for (String suit in suits) {
-      for (int i = 1; i <= 13; i++) {
-        String cardName;
-        String imageUrl =
-            'https://deckofcardsapi.com/static/img/${suit.toLowerCase()[0]}${i.toString().padLeft(2, '0')}.png';
-
-        switch (i) {
-          case 1:
-            cardName = 'Ace of $suit';
-            break;
-          case 11:
-            cardName = 'Jack of $suit';
-            break;
-          case 12:
-            cardName = 'Queen of $suit';
-            break;
-          case 13:
-            cardName = 'King of $suit';
-            break;
-          default:
-            cardName = '$i of $suit';
-        }
-
-        cards.add({
-          'name': cardName,
-          'suit': suit,
-          'image_url': imageUrl,
-          'folder_id':
-              (suits.indexOf(suit) + 1) // Assuming folder IDs start from 1
-        });
-      }
-    }
-
-    // Insert all cards
-    for (var card in cards) {
-      await db.insert('Cards', card);
-    }
+  // Update an existing folder
+  Future<int> updateFolder(int id, String folderName) async {
+    final db = await database;
+    return await db.update(
+      'Folders',
+      {'folder_name': folderName},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
+
+  // Delete a folder
+  Future<int> deleteFolder(int id) async {
+    final db = await database;
+    return await db.delete(
+      'Folders',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // Fetch all folders
+  Future<List<Map<String, dynamic>>> fetchFolders() async {
+    final db = await database;
+    return await db.query('Folders');
+  }
+
+  // Other database operations like fetchCards, insertCard, etc. can go here...
 }
