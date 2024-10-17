@@ -42,8 +42,8 @@ class DatabaseHelper {
     );
   }
 
-  // Insert a new folder
-  Future<int> insertFolder(String folderName) async {
+  // Insert a new folder (addFolder method)
+  Future<int> addFolder(String folderName) async {
     final db = await database;
     return await db.insert('Folders', {'folder_name': folderName});
   }
@@ -70,10 +70,24 @@ class DatabaseHelper {
   }
 
   // Fetch all folders
-  Future<List<Map<String, dynamic>>> fetchFolders() async {
+  Future<List<Map<String, dynamic>>> getFolders() async {
     final db = await database;
     return await db.query('Folders');
   }
 
-  // Other database operations like fetchCards, insertCard, etc. can go here...
+  // Insert a new card (addCard method)
+  Future<int> addCard(int folderId, String name, String imageUrl) async {
+    final db = await database;
+    return await db.insert('Cards', {
+      'folder_id': folderId,
+      'name': name,
+      'image_url': imageUrl,
+    });
+  }
+
+  // Fetch all cards in a folder
+  Future<List<Map<String, dynamic>>> getCards(int folderId) async {
+    final db = await database;
+    return await db.query('Cards', where: 'folder_id = ?', whereArgs: [folderId]);
+  }
 }
