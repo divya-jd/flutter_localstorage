@@ -29,6 +29,8 @@ class _FoldersScreenState extends State<FoldersScreen> {
     {'id': 4, 'folder_name': 'Diamonds'},
   ];
 
+  Map<String, dynamic>? selectedFolder;
+
   @override
   void initState() {
     super.initState();
@@ -64,9 +66,9 @@ class _FoldersScreenState extends State<FoldersScreen> {
     );
   }
 
-  void _updateFolder(int folderId, String currentName) {
+  void _updateFolder(Map<String, dynamic> folder) {
     final TextEditingController controller =
-        TextEditingController(text: currentName);
+        TextEditingController(text: folder['folder_name']);
 
     showDialog(
       context: context,
@@ -82,7 +84,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
               onPressed: () {
                 setState(() {
                   final index =
-                      folders.indexWhere((folder) => folder['id'] == folderId);
+                      folders.indexWhere((f) => f['id'] == folder['id']);
                   if (index != -1) {
                     folders[index]['folder_name'] = controller.text;
                   }
@@ -97,7 +99,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
     );
   }
 
-  void _deleteFolder(int folderId) {
+  void _deleteFolder(Map<String, dynamic> folder) {
     showDialog(
       context: context,
       builder: (context) {
@@ -108,7 +110,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  folders.removeWhere((folder) => folder['id'] == folderId);
+                  folders.removeWhere((f) => f['id'] == folder['id']);
                 });
                 Navigator.pop(context);
               },
@@ -126,6 +128,31 @@ class _FoldersScreenState extends State<FoldersScreen> {
     );
   }
 
+  void _showFolderOptions(String action) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return ListView.builder(
+          itemCount: folders.length,
+          itemBuilder: (context, index) {
+            final folder = folders[index];
+            return ListTile(
+              title: Text(folder['folder_name']),
+              onTap: () {
+                Navigator.pop(context); // Close the bottom sheet
+                if (action == 'edit') {
+                  _updateFolder(folder);
+                } else if (action == 'delete') {
+                  _deleteFolder(folder);
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,6 +162,14 @@ class _FoldersScreenState extends State<FoldersScreen> {
           IconButton(
             icon: Icon(Icons.add),
             onPressed: _addFolder,
+          ),
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () => _showFolderOptions('edit'),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => _showFolderOptions('delete'),
           ),
         ],
       ),
@@ -160,10 +195,13 @@ class _FoldersScreenState extends State<FoldersScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.network(
-                    (folder['folder_name'] == 'Spades' ||
-                            folder['folder_name'] == 'Clubs')
-                        ? 'https://deckofcardsapi.com/static/img/back.png'
-                        : 'https://w7.pngwing.com/pngs/873/911/png-transparent-contract-bridge-playing-card-poker-card-game-standard-52-card-deck-playing-card-back-rectangle-casino-bicycle-playing-cards.png',
+                    (folder['folder_name'] == 'Hearts' ||
+                            folder['folder_name'] == 'Diamonds')
+                        ? 'https://cdn.pixabay.com/photo/2022/02/23/20/25/card-7031432_1280.png'
+                        : (folder['folder_name'] == 'Spades' ||
+                                folder['folder_name'] == 'Clubs')
+                            ? 'https://deckofcardsapi.com/static/img/back.png'
+                            : 'https://i.redd.it/look-for-opinions-on-my-2-playing-card-back-designs-look-to-v0-r4rle6ipe3fc1.png?width=816&format=png&auto=webp&s=e5a6eca1e034c45a1221c80a23fe16dbbe6c45db',
                     height: 100,
                   ),
                   SizedBox(height: 10),
@@ -192,8 +230,7 @@ class _FoldersScreenState extends State<FoldersScreen> {
   }
 
   Future<int> _countCardsInFolder(int folderId) async {
-    // Predefined card counts for simulation
-    const cardCounts = {1: 3, 2: 4, 3: 2, 4: 3};
+    const cardCounts = {1: 3, 2: 3, 3: 4, 4: 2};
     return cardCounts[folderId] ?? 0;
   }
 }
@@ -220,6 +257,20 @@ class CardsScreen extends StatelessWidget {
     ],
     2: [
       {
+        'name': 'Club Ace',
+        'image_url': 'https://deckofcardsapi.com/static/img/AC.png'
+      },
+      {
+        'name': 'Club King',
+        'image_url': 'https://deckofcardsapi.com/static/img/KC.png'
+      },
+      {
+        'name': 'Club Queen',
+        'image_url': 'https://deckofcardsapi.com/static/img/QC.png'
+      },
+    ],
+    3: [
+      {
         'name': 'Spade Ace',
         'image_url': 'https://deckofcardsapi.com/static/img/AS.png'
       },
@@ -236,7 +287,7 @@ class CardsScreen extends StatelessWidget {
         'image_url': 'https://deckofcardsapi.com/static/img/JS.png'
       },
     ],
-    3: [
+    4: [
       {
         'name': 'Diamond Ace',
         'image_url': 'https://deckofcardsapi.com/static/img/AD.png'
@@ -244,20 +295,6 @@ class CardsScreen extends StatelessWidget {
       {
         'name': 'Diamond King',
         'image_url': 'https://deckofcardsapi.com/static/img/KD.png'
-      },
-    ],
-    4: [
-      {
-        'name': 'Club Ace',
-        'image_url': 'https://deckofcardsapi.com/static/img/AC.png'
-      },
-      {
-        'name': 'Club King',
-        'image_url': 'https://deckofcardsapi.com/static/img/KC.png'
-      },
-      {
-        'name': 'Club Queen',
-        'image_url': 'https://deckofcardsapi.com/static/img/QC.png'
       },
     ],
   };
@@ -271,7 +308,7 @@ class CardsScreen extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.add),
             onPressed: () {
-              // Add card logic can go here
+              // Add card logic
             },
           ),
         ],
@@ -295,10 +332,10 @@ class CardsScreen extends StatelessWidget {
                 final card = cards[index];
                 return GestureDetector(
                   onTap: () {
-                    // Update card logic can go here
+                    // Update card logic
                   },
                   onLongPress: () {
-                    // Delete card logic can go here
+                    // Delete card logic
                   },
                   child: Card(
                     child: Column(
