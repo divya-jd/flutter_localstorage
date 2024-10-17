@@ -313,7 +313,7 @@ final Map<int, List<Map<String, dynamic>>> cardsByFolder = {
       'name': 'Club Jack',
       'image_url': 'https://deckofcardsapi.com/static/img/JC.png'
     },
-    // Add more club cards...
+
   ],
   3: [
     {
@@ -365,7 +365,7 @@ final Map<int, List<Map<String, dynamic>>> cardsByFolder = {
       'image_url': 'https://deckofcardsapi.com/static/img/JS.png'
     },
 
-    // Add more spade cards...
+  
   ],
   4: [
     {
@@ -418,7 +418,7 @@ final Map<int, List<Map<String, dynamic>>> cardsByFolder = {
       'name': 'Diamond Jack',
       'image_url': 'https://deckofcardsapi.com/static/img/JD.png'
     },
-    // Add more diamond cards...
+    
   ],
 };
 
@@ -449,26 +449,33 @@ class _CardsScreenState extends State<CardsScreen> {
   }
 
   void _addCard(Map<String, dynamic> card) async {
-    bool cardExists = cards.any((c) => c['name'] == card['name']);
-    if (cardExists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Card "${card['name']}" is already in this folder!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
-      await DatabaseHelper()
-          .addCard(widget.folderId, card['name'], card['image_url']);
-      _fetchCards(); // Refresh the card list after adding a new card
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Card "${card['name']}" added successfully!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+  bool cardExists = cards.any((c) => c['name'] == card['name']);
+  if (cardExists) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Card "${card['name']}" is already in this folder!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  } else if (cards.length >= 5) { // Limit to 5 cards
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('You can only add up to 5 cards in this folder!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  } else {
+    await DatabaseHelper()
+        .addCard(widget.folderId, card['name'], card['image_url']);
+    _fetchCards(); // Refresh the card list after adding a new card
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Card "${card['name']}" added successfully!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
+}
 
   void _updateCard(Map<String, dynamic> card) async {
     final TextEditingController controller =
@@ -668,3 +675,4 @@ class _CardsScreenState extends State<CardsScreen> {
     );
   }
 }
+//crud
